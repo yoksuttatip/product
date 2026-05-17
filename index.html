@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการสินค้า</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0f14;--surface:#161920;--surface2:#1e2230;--border:#2a2f42;--accent:#4f8ef7;--accent2:#f7c948;--danger:#f75c5c;--success:#4fcc8e;--text:#e8eaf2;--muted:#6b7080;--radius:12px}
+body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;min-height:100vh;padding:0}
+header{background:linear-gradient(135deg,#1a1f35 0%,#0d1220 100%);border-bottom:1px solid var(--border);padding:20px 40px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.logo{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:var(--accent);letter-spacing:-0.5px}
+.logo span{color:var(--accent2)}
+.header-sub,.grid-title,#count-badge,.panel-title{font-family:'IBM Plex Mono',monospace}
+.header-sub{font-size:13px;color:var(--muted);margin-left:auto}
+#status-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px;transition:background .3s}
+#status-dot.online{background:var(--success);box-shadow:0 0 8px var(--success)}
+.container{max-width:1300px;margin:0 auto;padding:40px 24px;display:grid;grid-template-columns:360px 1fr;gap:32px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;position:sticky;top:85px}
+.panel-title{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--accent2);margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.panel-title::before{content:'';display:block;width:3px;height:16px;background:var(--accent2);border-radius:2px}
+.field{margin-bottom:18px}
+label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:8px;letter-spacing:.5px}
+input[type="text"],input[type="number"],input[type="url"],.modal input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:15px;padding:12px 14px;outline:none}
+input[type="text"],input[type="number"],input[type="url"]{transition:border-color .2s,box-shadow .2s}
+input:focus,.modal input:focus{border-color:var(--accent)}
+input:focus{box-shadow:0 0 0 3px rgba(79,142,247,.12)}
+.upload-area{border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
+.upload-area:hover,.upload-area.dragover{border-color:var(--accent);background:rgba(79,142,247,.05)}
+.upload-area input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:32px;margin-bottom:8px}
+.upload-text{font-size:13px;color:var(--muted)}
+.upload-preview{width:100%;height:160px;object-fit:cover;border-radius:8px;margin-top:12px;display:none}
+.upload-progress{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.upload-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .3s;border-radius:2px}
+.btn,.card-btn{font-family:'Sarabun',sans-serif;cursor:pointer}
+.btn{width:100%;padding:13px;border:none;border-radius:8px;font-size:15px;font-weight:700;transition:all .2s;letter-spacing:.3px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3a7af0;transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-cancel{background:var(--surface2);color:var(--muted);margin-top:10px;display:none}
+.btn-cancel:hover{color:var(--text)}
+.grid-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.grid-title{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
+#count-badge{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--accent)}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:transform .2s,border-color .2s,box-shadow .2s;animation:fadeUp .4s ease both}
+.card:hover{transform:translateY(-4px);border-color:rgba(79,142,247,.4);box-shadow:0 12px 32px rgba(0,0,0,.4)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.card-img,.card-img-placeholder{width:100%;height:180px;background:var(--surface2)}
+.card-img{object-fit:cover;display:block}
+.card-img-placeholder{display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--border)}
+.card-body{padding:16px}
+.card-name{font-size:16px;font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-price{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--accent2);margin-bottom:14px}
+.card-price span{font-size:12px;color:var(--muted);margin-left:2px}
+.card-actions{display:flex;gap:8px}
+.card-btn{flex:1;padding:8px;border:none;border-radius:6px;font-size:13px;font-weight:600;transition:all .15s}
+.card-btn-edit{background:var(--surface2);color:var(--accent);border:1px solid var(--border)}
+.card-btn-edit:hover{background:rgba(79,142,247,.15);border-color:var(--accent)}
+.card-btn-del{background:transparent;color:var(--danger);border:1px solid rgba(247,92,92,.3)}
+.card-btn-del:hover{background:rgba(247,92,92,.1);border-color:var(--danger)}
+.state-box{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);font-size:15px}
+.state-box .state-icon{font-size:48px;margin-bottom:16px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast-container{position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast{padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;border-left:3px solid;backdrop-filter:blur(12px);animation:toastIn .3s ease,toastOut .3s ease 2.7s both;max-width:300px}
+.toast-success{background:rgba(79,204,142,.15);border-color:var(--success);color:var(--success)}
+.toast-error{background:rgba(247,92,92,.15);border-color:var(--danger);color:var(--danger)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateX(20px)}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:380px;max-width:90vw}
+.modal h3{margin-bottom:16px;font-size:18px}
+.modal input{margin-bottom:16px}
+.modal-actions{display:flex;gap:10px}
+.modal-actions .btn{margin:0}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--text)}
+@media (max-width:900px){.container{grid-template-columns:1fr}.panel{position:static}}
+@media (max-width:500px){header{padding:16px 20px}.header-sub{display:none}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">product<span>.</span>db</div>
+  <div class="header-sub">
+    <span id="status-dot"></span>
+    <span id="status-text">กำลังเชื่อมต่อ...</span>
+  </div>
+</header>
+
+<div class="container">
+  <div class="panel">
+    <div class="panel-title" id="form-mode-label">เพิ่มสินค้าใหม่</div>
+
+    <div class="field">
+      <label>ชื่อสินค้า</label>
+      <input type="text" id="name" placeholder="เช่น เสื้อยืดลาย...">
+    </div>
+    <div class="field">
+      <label>ราคา (บาท)</label>
+      <input type="number" id="price" placeholder="0" min="0">
+    </div>
+    <div class="field">
+      <label>รูปภาพ</label>
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="image-file" accept="image/*">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">คลิกหรือลากไฟล์มาวาง<br><small style="font-size:11px;opacity:.6">JPG, PNG, WEBP ขนาดไม่เกิน 5MB</small></div>
+        <img class="upload-preview" id="preview-img" alt="preview">
+        <div class="upload-progress" id="progress-bar">
+          <div class="upload-progress-bar" id="progress-fill"></div>
+        </div>
+      </div>
+      <input type="url" id="image-url" placeholder="หรือวาง URL รูปภาพ" style="margin-top:10px;">
+    </div>
+
+    <button class="btn btn-primary" id="submit-btn" onclick="submitProduct()">
+      ➕ เพิ่มสินค้า
+    </button>
+    <button class="btn btn-cancel" id="cancel-btn" onclick="cancelEdit()">
+      ยกเลิก
+    </button>
+  </div>
+
+  <div class="right-panel">
+    <div class="grid-header">
+      <div class="grid-title">รายการสินค้า</div>
+      <div id="count-badge">0 รายการ</div>
+    </div>
+    <div class="products-grid" id="products">
+      <div class="state-box">
+        <div class="spinner"></div>
+        <div>กำลังโหลดสินค้า...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>✏️ แก้ไขสินค้า</h3>
+    <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">ชื่อสินค้า</label>
+    <input type="text" id="modal-name" placeholder="ชื่อสินค้า">
+    <label style="font-size:13px;color:var(--muted);display:block;margin-bottom:8px;">ราคา (บาท)</label>
+    <input type="number" id="modal-price" placeholder="ราคา" min="0">
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="confirmEdit()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+const SUPABASE_URL  = 'https://mgzldvabiizdozspvrjg.supabase.co'
+const SUPABASE_ANON_KEY = 'sb_publishable_bYD-91DACTxQczvEu0Iyow_Vet7MQAh'
+const STORAGE_BUCKET = 'products'
+
+const supabase = createClient(SUPABASE_URL , SUPABASE_ANON_KEY)
+
+async function checkConnection() {
+  const dot = document.getElementById('status-dot')
+  const txt = document.getElementById('status-text')
+  const { error } = await supabase.from('products').select('id').limit(1)
+  if (!error) {
+    dot.className = 'online'
+    txt.textContent = 'เชื่อมต่อแล้ว'
+  } else {
+    txt.textContent = 'เชื่อมต่อไม่ได้'
+  }
+}
+checkConnection()
+let editingId = null
+let uploadedImageUrl = null
+
+window.toast = (msg, type = 'success') => {
+  const el = document.createElement('div')
+  el.className = `toast toast-${type}`
+  el.textContent = msg
+  document.getElementById('toast-container').appendChild(el)
+  setTimeout(() => el.remove(), 3200)
+}
+
+async function loadProducts() {
+  const container = document.getElementById('products')
+  container.innerHTML = `<div class="state-box"><div class="spinner"></div><div>กำลังโหลด...</div></div>`
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('id', { ascending: false })
+
+  if (error) {
+    container.innerHTML = `<div class="state-box"><div class="state-icon">⚠️</div><div>${error.message}</div></div>`
+    return
+  }
+
+  document.getElementById('count-badge').textContent = `${data.length} รายการ`
+
+  if (!data.length) {
+    container.innerHTML = `<div class="state-box"><div class="state-icon">📦</div><div>ยังไม่มีสินค้า เพิ่มรายการแรกได้เลย</div></div>`
+    return
+  }
+
+  container.innerHTML = ''
+  data.forEach((item, i) => {
+    const card = document.createElement('div')
+    card.className = 'card'
+    card.style.animationDelay = `${i * 0.05}s`
+
+    const imgHtml = item.image
+      ? `<img class="card-img" src="${item.image}" alt="${item.name}" onerror="this.parentElement.innerHTML='<div class=\'card-img-placeholder\'>🖼️</div>'">`
+      : `<div class="card-img-placeholder">🖼️</div>`
+
+    card.innerHTML = `
+      ${imgHtml}
+      <div class="card-body">
+        <div class="card-name" title="${item.name}">${item.name}</div>
+        <div class="card-price">${Number(item.price).toLocaleString()}<span>บาท</span></div>
+        <div class="card-actions">
+          <button class="card-btn card-btn-edit" onclick="openEdit(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price})">✏️ แก้ไข</button>
+          <button class="card-btn card-btn-del" onclick="deleteProduct(${item.id})">🗑️</button>
+        </div>
+      </div>
+    `
+    container.appendChild(card)
+  })
+}
+
+async function uploadImage(file) {
+  const bar = document.getElementById('progress-bar')
+  const fill = document.getElementById('progress-fill')
+  bar.style.display = 'block'
+  fill.style.width = '30%'
+
+  const ext = file.name.split('.').pop()
+  const filename = `product_${Date.now()}.${ext}`
+
+  const { data, error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(filename, file, { upsert: true })
+
+  fill.style.width = '100%'
+  setTimeout(() => { bar.style.display = 'none'; fill.style.width = '0%'; }, 600)
+
+  if (error) {
+    toast('อัปโหลดรูปไม่สำเร็จ: ' + error.message, 'error')
+    return null
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(filename)
+
+  return urlData.publicUrl
+}
+
+document.getElementById('image-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  if (file.size > 5 * 1024 * 1024) {
+    toast('ไฟล์ใหญ่เกิน 5MB', 'error')
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (ev) => {
+    const prev = document.getElementById('preview-img')
+    prev.src = ev.target.result
+    prev.style.display = 'block'
+  }
+  reader.readAsDataURL(file)
+  uploadedImageUrl = await uploadImage(file)
+  if (uploadedImageUrl) toast('อัปโหลดรูปสำเร็จ ✓')
+})
+
+const area = document.getElementById('upload-area')
+area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover') })
+area.addEventListener('dragleave', () => area.classList.remove('dragover'))
+area.addEventListener('drop', (e) => {
+  e.preventDefault(); area.classList.remove('dragover')
+  const file = e.dataTransfer.files[0]
+  if (file) {
+    document.getElementById('image-file').files = e.dataTransfer.files
+    document.getElementById('image-file').dispatchEvent(new Event('change'))
+  }
+})
+
+window.submitProduct = async () => {
+  const name = document.getElementById('name').value.trim()
+  const price = document.getElementById('price').value
+  const urlInput = document.getElementById('image-url').value.trim()
+  const image = uploadedImageUrl || urlInput || null
+
+  if (!name || !price) { toast('กรอกชื่อและราคาด้วย', 'error'); return }
+
+  const btn = document.getElementById('submit-btn')
+  btn.disabled = true
+  btn.textContent = 'กำลังบันทึก...'
+
+  const { error } = await supabase
+    .from('products')
+    .insert([{ name, price: Number(price), image }])
+
+  btn.disabled = false
+  btn.textContent = '➕ เพิ่มสินค้า'
+
+  if (error) { toast(error.message, 'error'); return }
+
+  toast('เพิ่มสินค้าสำเร็จ! 🎉')
+  document.getElementById('name').value = ''
+  document.getElementById('price').value = ''
+  document.getElementById('image-url').value = ''
+  document.getElementById('image-file').value = ''
+  document.getElementById('preview-img').style.display = 'none'
+  uploadedImageUrl = null
+  loadProducts()
+}
+
+window.deleteProduct = async (id) => {
+  if (!confirm('ยืนยันการลบสินค้านี้?')) return
+
+  const { error } = await supabase.from('products').delete().eq('id', id)
+  if (error) { toast(error.message, 'error'); return }
+  toast('ลบสินค้าแล้ว')
+  loadProducts()
+}
+
+window.openEdit = (id, name, price) => {
+  editingId = id
+  document.getElementById('modal-name').value = name
+  document.getElementById('modal-price').value = price
+  document.getElementById('modal').classList.add('open')
+}
+
+window.closeModal = () => {
+  document.getElementById('modal').classList.remove('open')
+  editingId = null
+}
+
+window.confirmEdit = async () => {
+  const name = document.getElementById('modal-name').value.trim()
+  const price = document.getElementById('modal-price').value
+
+  if (!name || !price) { toast('กรอกข้อมูลให้ครบ', 'error'); return }
+
+  const { error } = await supabase
+    .from('products')
+    .update({ name, price: Number(price) })
+    .eq('id', editingId)
+
+  if (error) { toast(error.message, 'error'); return }
+  toast('แก้ไขสำเร็จ ✓')
+  closeModal()
+  loadProducts()
+}
+
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal')) closeModal()
+})
+
+loadProducts()
+</script>
+
+</body>
+</html>
